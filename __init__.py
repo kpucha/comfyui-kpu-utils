@@ -3,15 +3,19 @@
 A collection of custom nodes for ComfyUI focused on KPU utilities.
 """
 
-from .nodes import KPUExampleNode
+from .nodes import KPUExampleNode, WailustriousPromptGenerator, WailustriousPromptBuilder
 
 # Required by ComfyUI to recognize custom nodes
 NODE_CLASS_MAPPINGS = {
     "KPUExampleNode": KPUExampleNode,
+    "WailustriousPromptGenerator": WailustriousPromptGenerator,
+    "WailustriousPromptBuilder": WailustriousPromptBuilder,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "KPUExampleNode": "KPU Example (Grayscale)",
+    "WailustriousPromptGenerator": "Wailustrious Prompt Generator",
+    "WailustriousPromptBuilder": "Wailustrious Prompt Builder (Presets)",
 }
 
-__all__ = ["KPUExampleNode", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
+__all__ = ["KPUExampleNode", "WailustriousPromptGenerator", "WailustriousPromptBuilder", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
