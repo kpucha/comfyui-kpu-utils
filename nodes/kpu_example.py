@@ -1,12 +1,18 @@
 """KPU example node for comfyui-kpu-utils.
 
 This file defines a minimal, functional ComfyUI-style node class
-that acts as a pass-through for an image input. It's intended as a
-template for building more advanced KPU-related nodes.
+that converts images to grayscale. Handles PyTorch tensors, numpy arrays,
+and PIL Images.
 """
 from typing import Any, Dict
 from PIL import Image
 import numpy as np
+
+try:
+    import torch
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
 
 
 class KPUExampleNode:
@@ -25,65 +31,80 @@ class KPUExampleNode:
     CATEGORY = "KPU Utils"
 
     def process(self, image: Any):
-        """Convert `image` to grayscale and return it with the same type.
+        """Convert `image` to grayscale.
 
-        - If `image` is a `PIL.Image`, returns a `PIL.Image` in mode "L".
-        - If `image` is a `numpy.ndarray`, handles both normalized floats [0,1]
-          and uint8 [0,255]. Returns HWC format with single channel.
-        - On any error, returns the original `image`.
+        Handles:
+        - PyTorch tensors (batch, height, width, 3) -> (batch, height, width, 1)
+        - numpy arrays (height, width, 3) -> (height, width, 1)
+        - PIL Image
         """
         try:
+            # PyTorch tensor (most common in ComfyUI)
+            if HAS_TORCH and isinstance(image, torch.Tensor):
+                # Assume shape (batch, height, width, channels) with float [0, 1]
+                print(f"[KPUExampleNode] Input tensor shape: {image.shape}, dtype: {image.dtype}")
+                
+                # Convert RGB to grayscale using standard formula
+                # gray = 0.299*R + 0.587*G + 0.114*B
+                if image.shape[-1] == 3:  # RGB
+                    gray = (0.299 * image[..., 0] + 
+                            0.587 * image[..., 1] + 
+                            0.114 * image[..., 2])
+                elif image.shape[-1] == 4:  # RGBA
+                    gray = (0.299 * image[..., 0] + 
+                            0.587 * image[..., 1] + 
+                            0.114 * image[..., 2])
+                else:
+                    gray = image[..., 0]  # Already single channel
+                
+                # Expand dims to maintain (batch, height, width, 1)
+                gray = gray.unsqueeze(-1)
+                print(f"[KPUExampleNode] Output tensor shape: {gray.shape}")
+                return (gray,)
+            
             # PIL Image -> return PIL grayscale
             if isinstance(image, Image.Image):
                 return (image.convert("L"),)
 
-            # numpy array -> handle ComfyUI format (HWC float or uint8)
+            # numpy array
             if isinstance(image, np.ndarray):
+                print(f"[KPUExampleNode] Input numpy array shape: {image.shape}, dtype: {image.dtype}")
                 orig_dtype = image.dtype
                 
-                # Normalize to uint8 [0, 255] for PIL conversion
-                if np.issubdtype(orig_dtype, np.floating):
-                    # Assume normalized [0, 1]
-                    img_uint8 = (np.clip(image, 0, 1) * 255).astype(np.uint8)
+                # Handle different shapes: (H,W,C) or (H,W)
+                if len(image.shape) == 3 and image.shape[-1] in (3, 4):
+                    # RGB/RGBA to grayscale
+                    if np.issubdtype(orig_dtype, np.floating):
+                        # Assume normalized [0, 1]
+                        gray = (0.299 * image[..., 0] + 
+                                0.587 * image[..., 1] + 
+                                0.114 * image[..., 2])
+                    else:
+                        # uint8 [0, 255]
+                        gray = (0.299 * image[..., 0] + 
+                                0.587 * image[..., 1] + 
+                                0.114 * image[..., 2]).astype(orig_dtype)
+                    
+                    # Expand dims to HWC
+                    gray = np.expand_dims(gray, axis=2)
                 else:
-                    img_uint8 = image.astype(np.uint8)
+                    # Already grayscale or single channel
+                    gray = image
                 
-                # Convert to PIL, apply grayscale
-                pil = Image.fromarray(img_uint8)
-                gray_pil = pil.convert("L")
-                gray_arr = np.array(gray_pil)  # HW format (2D)
-                
-                # Convert back to original dtype and restore HWC format
-                if np.issubdtype(orig_dtype, np.floating):
-                    # Return float [0, 1], expand to HWC
-                    gray_float = (gray_arr.astype(np.float32) / 255.0)
-                    out = np.expand_dims(gray_float, axis=2)
-                else:
-                    # Return uint8, expand to HWC
-                    out = np.expand_dims(gray_arr.astype(orig_dtype), axis=2)
-                
-                return (out,)
+                print(f"[KPUExampleNode] Output numpy array shape: {gray.shape}")
+                return (gray,)
 
-            # Fallback: try to coerce to numpy and behave like above
-            arr = np.array(image)
-            orig_dtype = arr.dtype
+            # Fallback: try to coerce to tensor or numpy
+            if HAS_TORCH:
+                try:
+                    tensor = torch.from_numpy(np.array(image))
+                    return self.process(tensor)
+                except Exception:
+                    pass
             
-            if np.issubdtype(orig_dtype, np.floating):
-                img_uint8 = (np.clip(arr, 0, 1) * 255).astype(np.uint8)
-            else:
-                img_uint8 = arr.astype(np.uint8)
-            
-            pil = Image.fromarray(img_uint8)
-            gray_pil = pil.convert("L")
-            gray_arr = np.array(gray_pil)
-            
-            if np.issubdtype(orig_dtype, np.floating):
-                gray_float = (gray_arr.astype(np.float32) / 255.0)
-                out = np.expand_dims(gray_float, axis=2)
-            else:
-                out = np.expand_dims(gray_arr.astype(orig_dtype), axis=2)
-
-            return (out,)
+            return (image,)
         except Exception as e:
-            print(f"Error in KPUExampleNode.process: {e}")
+            print(f"[KPUExampleNode] Error in process: {e}")
+            import traceback
+            traceback.print_exc()
             return (image,)
