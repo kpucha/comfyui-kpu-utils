@@ -3,13 +3,14 @@
 A collection of custom nodes for ComfyUI focused on KPU utilities.
 """
 
-from .nodes import KPUExampleNode, WailustriousPromptGenerator, WailustriousPromptBuilder, WailustriousMultiCharacterGenerator
+from .nodes import KPUExampleNode, WailustriousPromptGenerator, WailustriousPromptBuilder, WailustriousCharacterBuilder, WailustriousMultiCharacterGenerator
 
 # Required by ComfyUI to recognize custom nodes
 NODE_CLASS_MAPPINGS = {
     "KPUExampleNode": KPUExampleNode,
     "WailustriousPromptGenerator": WailustriousPromptGenerator,
     "WailustriousPromptBuilder": WailustriousPromptBuilder,
+    "WailustriousCharacterBuilder": WailustriousCharacterBuilder,
     "WailustriousMultiCharacterGenerator": WailustriousMultiCharacterGenerator,
 }
 
@@ -17,7 +18,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "KPUExampleNode": "KPU Example (Grayscale)",
     "WailustriousPromptGenerator": "KPU Wailustrious Prompt Generator",
     "WailustriousPromptBuilder": "KPU Wailustrious Prompt Builder (Presets)",
-    "WailustriousMultiCharacterGenerator": "KPU Wailustrious Multi-Character Generator",
+    "WailustriousCharacterBuilder": "KPU Wailustrious Character Builder",
+    "WailustriousMultiCharacterGenerator": "KPU Wailustrious Multi-Character Scene",
 }
 
-__all__ = ["KPUExampleNode", "WailustriousPromptGenerator", "WailustriousPromptBuilder", "WailustriousMultiCharacterGenerator", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
+__all__ = ["KPUExampleNode", "WailustriousPromptGenerator", "WailustriousPromptBuilder", "WailustriousCharacterBuilder", "WailustriousMultiCharacterGenerator", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
