@@ -1,55 +1,82 @@
 """KPU Character Builder Node.
 
 Generates individual character descriptions optimized for Wailustrious XL.
-Output can be fed into Multi-Character Generator.
+Uses Danbooru tag format for compatibility and consistency.
 """
 from typing import Any, Dict, Tuple
 
 
 class WailustriousCharacterBuilder:
-    """Generate a single character description with all appearance and pose details.
+    """Generate a single character description with Danbooru tags.
     
-    Perfect for building individual character descriptions that can be combined
-    in multi-character scenes using the Multi-Character Generator.
+    Returns character_type separately so Multi-Character Scene can count girls/boys.
+    Character count (1girl, 1boy, etc) is NOT included here - handled by Multi-Character Scene.
     """
 
     @classmethod
     def INPUT_TYPES(cls) -> Dict[str, Dict[str, Any]]:
         return {
             "required": {
-                # Character Type
-                "character_type": ("STRING", {"default": "girl"}),  # e.g., "girl", "boy", "elf girl", "demon"
+                # Character Type (gender - returned separately for counting)
+                "character_type": (["girl", "boy", "elf", "demon", "maid", "magical girl", "nun", "witch"], {"default": "girl"}),
                 
-                # Appearance - Hair
-                "hair_color": ("STRING", {"default": "black"}),
-                "hair_length": (["short", "shoulder-length", "long", "very long"], {"default": "long"}),
-                "hair_style": ("STRING", {"default": "straight"}),  # e.g., "twintails", "wavy"
+                # Appearance - Hair (Danbooru tags)
+                "hair_color": (
+                    ["black", "white", "brown", "red", "pink", "purple", "blue", "green", "yellow", "orange", "grey", "silver", "blonde", "cyan"],
+                    {"default": "black"},
+                ),
+                "hair_length": (["very short hair", "short hair", "shoulder-length hair", "long hair", "very long hair"], {"default": "long hair"}),
+                "hair_style": (
+                    ["straight hair", "wavy hair", "curly hair", "twintails", "drill hair", "side ponytail", "ponytail", "hime cut", "braid"],
+                    {"default": "straight hair"},
+                ),
                 
                 # Appearance - Eyes
-                "eye_color": ("STRING", {"default": "blue"}),
-                "eye_shape": ("STRING", {"default": ""}),  # e.g., "cat eyes", "large eyes"
+                "eye_color": (
+                    ["black eyes", "white eyes", "brown eyes", "red eyes", "pink eyes", "purple eyes", "blue eyes", "green eyes", "yellow eyes", "orange eyes", "grey eyes", "cyan eyes"],
+                    {"default": "blue eyes"},
+                ),
+                "eye_shape": (
+                    ["", "large eyes", "small eyes", "cat eyes", "fox eyes", "sharp eyes"],
+                    {"default": ""},
+                ),
                 
                 # Appearance - Body
-                "body_type": ("STRING", {"default": "slim"}),
-                "body_feature": ("STRING", {"default": ""}),  # Optional additional features
+                "body_type": (["slim", "slender", "petite", "curvy", "busty", "muscular", "athletic"], {"default": "slim"}),
+                "body_feature": ("STRING", {"default": ""}),  # e.g., "breasts" (Danbooru compatible)
                 
-                # Clothing & Accessories
-                "clothing": ("STRING", {"default": "school uniform"}),
-                "clothing_color": ("STRING", {"default": ""}),
-                "accessories": ("STRING", {"default": ""}),
+                # Clothing & Accessories (Danbooru tags)
+                "clothing": (
+                    ["school uniform", "sailor uniform", "maid outfit", "dress", "casual clothes", "formal suit", "fantasy outfit", "armor", "kimono", "bikini", "sportswear"],
+                    {"default": "school uniform"},
+                ),
+                "clothing_color": (
+                    ["", "white", "black", "blue", "red", "green", "purple", "pink", "yellow", "brown"],
+                    {"default": ""},
+                ),
+                "accessories": ("STRING", {"default": ""}),  # e.g., "glasses", "tiara", "ribbon"
                 
                 # Pose & Expression
-                "pose": ("STRING", {"default": "standing"}),
-                "action": ("STRING", {"default": "looking at viewer"}),
-                "expression": ("STRING", {"default": "smiling"}),
+                "pose": (
+                    ["standing", "sitting", "lying down", "kneeling", "floating", "jumping", "running", "dancing"],
+                    {"default": "standing"},
+                ),
+                "action": (
+                    ["looking at viewer", "looking away", "profile", "back view", "from above", "from below"],
+                    {"default": "looking at viewer"},
+                ),
+                "expression": (
+                    ["smiling", "happy", "neutral", "serious", "sad", "embarrassed", "blushing", "closed eyes"],
+                    {"default": "smiling"},
+                ),
             },
             "optional": {
-                "special_traits": ("STRING", {"default": ""}),  # e.g., "blushing", "sweating"
+                "special_traits": ("STRING", {"default": ""}),  # Custom Danbooru tags
             }
         }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("character_description",)
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("character_description", "character_type")
     FUNCTION = "build"
     CATEGORY = "KPU Utils"
 
@@ -70,44 +97,35 @@ class WailustriousCharacterBuilder:
         action: str,
         expression: str,
         special_traits: str = "",
-    ) -> Tuple[str]:
+    ) -> Tuple[str, str]:
         """Build a single character description.
         
         Returns:
-            Tuple containing the character description string.
+            Tuple of (character_description, character_type).
+            Character type is returned separately so Multi-Character Scene can count them.
         """
         
         parts = []
         
-        # Character type (required)
-        if character_type.strip():
-            parts.append(character_type)
+        # Hair - color + length + style (avoid duplication with "hair" suffix)
+        if hair_color.strip():
+            parts.append(f"{hair_color} hair")
         
-        # Hair
-        hair_parts = []
-        if hair_color.strip() and hair_color.lower() != "black":
-            hair_parts.append(f"{hair_color} hair")
-        elif hair_color.strip():
-            hair_parts.append("black hair")
+        if hair_length.strip() and "hair" not in hair_length:
+            parts.append(hair_length)
+        elif hair_length.strip():
+            parts.append(hair_length)
         
-        if hair_length.strip():
-            hair_parts.append(hair_length)
-        
-        if hair_style.strip():
-            hair_parts.append(f"{hair_style} hair")
-        
-        if hair_parts:
-            parts.append(", ".join(hair_parts))
+        if hair_style.strip() and "hair" not in hair_style:
+            parts.append(hair_style)
+        elif hair_style.strip():
+            parts.append(hair_style)
         
         # Eyes
-        eye_parts = []
         if eye_color.strip():
-            eye_parts.append(f"{eye_color} eyes")
+            parts.append(eye_color)
         if eye_shape.strip():
-            eye_parts.append(eye_shape)
-        
-        if eye_parts:
-            parts.append(", ".join(eye_parts))
+            parts.append(eye_shape)
         
         # Body
         if body_type.strip():
@@ -116,16 +134,10 @@ class WailustriousCharacterBuilder:
             parts.append(body_feature)
         
         # Clothing
-        clothing_parts = []
         if clothing.strip():
-            clothing_parts.append(clothing)
+            parts.append(clothing)
         if clothing_color.strip():
-            # Avoid duplication if color is in clothing name
-            if clothing_color.lower() not in clothing.lower():
-                clothing_parts.insert(0, clothing_color)
-        
-        if clothing_parts:
-            parts.append(", ".join(clothing_parts))
+            parts.append(clothing_color)
         
         # Accessories
         if accessories.strip():
@@ -139,11 +151,12 @@ class WailustriousCharacterBuilder:
         if expression.strip():
             parts.append(expression)
         
-        # Special traits
+        # Special traits (custom tags)
         if special_traits.strip():
             parts.append(special_traits)
         
         # Join all parts
         description = ", ".join(part.strip() for part in parts if part.strip())
         
-        return (description,)
+        # Return description and character type separately
+        return (description, character_type)
