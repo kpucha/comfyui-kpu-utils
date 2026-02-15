@@ -14,8 +14,8 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "KPUExampleNode": "KPU Example (Grayscale)",
-    "WailustriousPromptGenerator": "Wailustrious Prompt Generator",
-    "WailustriousPromptBuilder": "Wailustrious Prompt Builder (Presets)",
+    "WailustriousPromptGenerator": "KPU Wailustrious Prompt Generator",
+    "WailustriousPromptBuilder": "KPU Wailustrious Prompt Builder (Presets)",
 }
 
 __all__ = ["KPUExampleNode", "WailustriousPromptGenerator", "WailustriousPromptBuilder", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]

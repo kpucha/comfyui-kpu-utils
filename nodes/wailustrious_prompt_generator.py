@@ -1,4 +1,4 @@
-"""Wailustrious XL Prompt Generator Node.
+"""KPU Wailustrious Prompt Generator Node.
 
 A ComfyUI node designed to generate well-structured prompts
 optimized for Wailustrious XL model following best practices.
@@ -21,11 +21,22 @@ class WailustriousPromptGenerator:
                 "character_count": (["1girl", "1boy", "2girls", "2boys", "1girl, 1boy", "3girls", "3boys", "5girls", "group"],),
                 "character_type": ("STRING", {"default": ""}),  # e.g., "elf, demon girl, maid"
                 
-                # Appearance
-                "hair": ("STRING", {"default": "long black hair"}),
-                "eyes": ("STRING", {"default": "blue eyes"}),
-                "body_type": ("STRING", {"default": "slim"}),
+                # Appearance - Hair
+                "hair_color": ("STRING", {"default": "black"}),
+                "hair_length": (["short", "shoulder-length", "long", "very long"], {"default": "long"}),
+                "hair_style": ("STRING", {"default": "straight"}),  # e.g., "twintails", "wavy", "curly"
+                
+                # Appearance - Eyes
+                "eye_color": ("STRING", {"default": "blue"}),
+                "eye_shape": ("STRING", {"default": ""}),  # e.g., "cat eyes", "large eyes"
+                
+                # Appearance - Body
+                "body_type": ("STRING", {"default": "slim"}),  # e.g., "slim", "curvy", "muscular"
+                "body_feature": ("STRING", {"default": ""}),  # Optional additional body features
+                
+                # Clothing
                 "clothing": ("STRING", {"default": "school uniform"}),
+                "clothing_color": ("STRING", {"default": ""}),
                 "accessories": ("STRING", {"default": ""}),
                 
                 # Pose & Action
@@ -33,10 +44,28 @@ class WailustriousPromptGenerator:
                 "action": ("STRING", {"default": "looking at viewer"}),
                 "expression": ("STRING", {"default": "smiling"}),
                 
+                # Camera & Composition
+                "camera_angle": (
+                    [
+                        "eye level",
+                        "dutch angle",
+                        "low angle",
+                        "high angle",
+                        "overhead",
+                        "POV",
+                        "isometric",
+                        "profile",
+                        "3/4 view",
+                    ],
+                    {"default": "eye level"},
+                ),
+                "composition": ("STRING", {"default": ""}),  # e.g., "centered", "rule of thirds"
+                
                 # Setting
                 "location": ("STRING", {"default": "bedroom"}),
                 "lighting": ("STRING", {"default": "soft lighting"}),
                 "time_of_day": ("STRING", {"default": "daytime"}),
+                "background_detail": ("STRING", {"default": ""}),
                 
                 # Art Quality
                 "art_style": (["anime", "manga", "illustration", "pixelart"], {"default": "anime"}),
@@ -58,17 +87,25 @@ class WailustriousPromptGenerator:
         self,
         character_count: str,
         character_type: str,
-        hair: str,
-        eyes: str,
+        hair_color: str,
+        hair_length: str,
+        hair_style: str,
+        eye_color: str,
+        eye_shape: str,
         body_type: str,
+        body_feature: str,
         clothing: str,
+        clothing_color: str,
         accessories: str,
         pose: str,
         action: str,
         expression: str,
+        camera_angle: str,
+        composition: str,
         location: str,
         lighting: str,
         time_of_day: str,
+        background_detail: str,
         art_style: str,
         quality_tags: str,
         negative_prompt: str = "",
@@ -89,19 +126,53 @@ class WailustriousPromptGenerator:
         if character_type.strip():
             prompt_parts.append(character_type)
         
-        # 2. Appearance
-        if hair.strip():
-            prompt_parts.append(hair)
-        if eyes.strip():
-            prompt_parts.append(eyes)
+        # 2. Appearance - Hair
+        hair_parts = []
+        if hair_color.strip() and hair_color.lower() != "black":
+            hair_parts.append(f"{hair_color} hair")
+        elif hair_color.strip():
+            hair_parts.append("black hair")
+        
+        if hair_length.strip():
+            hair_parts.append(hair_length)
+        
+        if hair_style.strip():
+            hair_parts.append(f"{hair_style} hair")
+        
+        if hair_parts:
+            prompt_parts.append(", ".join(hair_parts))
+        
+        # 3. Appearance - Eyes
+        eye_parts = []
+        if eye_color.strip():
+            eye_parts.append(f"{eye_color} eyes")
+        
+        if eye_shape.strip():
+            eye_parts.append(eye_shape)
+        
+        if eye_parts:
+            prompt_parts.append(", ".join(eye_parts))
+        
+        # 4. Appearance - Body
         if body_type.strip():
             prompt_parts.append(body_type)
+        
+        if body_feature.strip():
+            prompt_parts.append(body_feature)
+        
+        # 5. Clothing
+        clothing_parts = []
         if clothing.strip():
-            prompt_parts.append(clothing)
+            clothing_parts.append(clothing)
+        if clothing_color.strip():
+            clothing_parts.append(f"{clothing_color} {clothing}".strip())
+        if clothing_parts:
+            prompt_parts.append(", ".join(clothing_parts))
+        
         if accessories.strip():
             prompt_parts.append(accessories)
         
-        # 3. Pose & Action
+        # 6. Pose & Action
         if pose.strip():
             prompt_parts.append(pose)
         if action.strip():
@@ -109,24 +180,33 @@ class WailustriousPromptGenerator:
         if expression.strip():
             prompt_parts.append(expression)
         
-        # 4. Setting
+        # 7. Camera & Composition
+        if camera_angle.strip() and camera_angle != "eye level":
+            prompt_parts.append(f"{camera_angle} view")
+        
+        if composition.strip():
+            prompt_parts.append(composition)
+        
+        # 8. Setting
         if location.strip():
             prompt_parts.append(location)
+        if background_detail.strip():
+            prompt_parts.append(background_detail)
         if lighting.strip():
             prompt_parts.append(lighting)
         if time_of_day.strip():
             prompt_parts.append(time_of_day)
         
-        # 5. Art Style
+        # 9. Art Style
         prompt_parts.append(art_style)
         if quality_tags.strip():
             prompt_parts.append(quality_tags)
         
-        # 6. Custom tags
+        # 10. Custom tags
         if custom_tags.strip():
             prompt_parts.append(custom_tags)
         
-        # 7. Weight emphasis (optional)
+        # 11. Weight emphasis (optional)
         if weight_emphasis.strip():
             prompt_parts.append(weight_emphasis)
         
@@ -159,6 +239,20 @@ class WailustriousPromptBuilder:
         return {
             "required": {
                 "preset": (list(presets.keys()),),
+                "camera_angle": (
+                    [
+                        "eye level",
+                        "dutch angle",
+                        "low angle",
+                        "high angle",
+                        "overhead",
+                        "POV",
+                        "isometric",
+                        "profile",
+                        "3/4 view",
+                    ],
+                    {"default": "eye level"},
+                ),
                 "modify": ("STRING", {"default": ""}),
             }
         }
@@ -179,11 +273,12 @@ class WailustriousPromptBuilder:
         "fantasy": "1girl, fantasy warrior, armor, sword, epic pose, dramatic lighting, castle background, heroic expression, high quality, masterpiece, anime illustration",
     }
 
-    def build(self, preset: str, modify: str = "") -> Tuple[str, ...]:
-        """Build prompt from preset, optionally modified.
+    def build(self, preset: str, camera_angle: str = "eye level", modify: str = "") -> Tuple[str, ...]:
+        """Build prompt from preset with camera angle and optional modifications.
         
         Args:
             preset: Name of preset configuration
+            camera_angle: Camera angle/composition
             modify: Additional tags to append (comma-separated)
         
         Returns:
@@ -191,9 +286,15 @@ class WailustriousPromptBuilder:
         """
         base_prompt = self.PRESETS.get(preset, self.PRESETS["casual"])
         
+        # Add camera angle if not default
+        prompt_parts = [base_prompt]
+        if camera_angle.strip() and camera_angle != "eye level":
+            prompt_parts.append(f"{camera_angle} view")
+        
+        # Add custom modifications
         if modify.strip():
-            prompt = f"{base_prompt}, {modify}"
-        else:
-            prompt = base_prompt
+            prompt_parts.append(modify)
+        
+        prompt = ", ".join(prompt_parts)
         
         return (prompt,)
