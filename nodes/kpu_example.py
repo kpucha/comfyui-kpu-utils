@@ -28,10 +28,8 @@ class KPUExampleNode:
         """Convert `image` to grayscale and return it with the same type.
 
         - If `image` is a `PIL.Image`, returns a `PIL.Image` in mode "L".
-        - If `image` is a `numpy.ndarray`, returns a 2D numpy array
-          (grayscale). If the original array was floating, the result is
-          returned as floats in [0, 1]; integer arrays are returned in
-          the original integer dtype (0-255).
+        - If `image` is a `numpy.ndarray`, handles both normalized floats [0,1]
+          and uint8 [0,255]. Returns HWC format with single channel.
         - On any error, returns the original `image`.
         """
         try:
@@ -39,32 +37,53 @@ class KPUExampleNode:
             if isinstance(image, Image.Image):
                 return (image.convert("L"),)
 
-            # numpy array -> convert to PIL, convert, then map back dtype
+            # numpy array -> handle ComfyUI format (HWC float or uint8)
             if isinstance(image, np.ndarray):
                 orig_dtype = image.dtype
-                pil = Image.fromarray(image)
-                gray_pil = pil.convert("L")
-                gray_arr = np.array(gray_pil)
-
+                
+                # Normalize to uint8 [0, 255] for PIL conversion
                 if np.issubdtype(orig_dtype, np.floating):
-                    out = (gray_arr.astype(np.float32) / 255.0)
+                    # Assume normalized [0, 1]
+                    img_uint8 = (np.clip(image, 0, 1) * 255).astype(np.uint8)
                 else:
-                    out = gray_arr.astype(orig_dtype)
-
+                    img_uint8 = image.astype(np.uint8)
+                
+                # Convert to PIL, apply grayscale
+                pil = Image.fromarray(img_uint8)
+                gray_pil = pil.convert("L")
+                gray_arr = np.array(gray_pil)  # HW format (2D)
+                
+                # Convert back to original dtype and restore HWC format
+                if np.issubdtype(orig_dtype, np.floating):
+                    # Return float [0, 1], expand to HWC
+                    gray_float = (gray_arr.astype(np.float32) / 255.0)
+                    out = np.expand_dims(gray_float, axis=2)
+                else:
+                    # Return uint8, expand to HWC
+                    out = np.expand_dims(gray_arr.astype(orig_dtype), axis=2)
+                
                 return (out,)
 
             # Fallback: try to coerce to numpy and behave like above
             arr = np.array(image)
             orig_dtype = arr.dtype
-            pil = Image.fromarray(arr)
+            
+            if np.issubdtype(orig_dtype, np.floating):
+                img_uint8 = (np.clip(arr, 0, 1) * 255).astype(np.uint8)
+            else:
+                img_uint8 = arr.astype(np.uint8)
+            
+            pil = Image.fromarray(img_uint8)
             gray_pil = pil.convert("L")
             gray_arr = np.array(gray_pil)
-
+            
             if np.issubdtype(orig_dtype, np.floating):
-                out = (gray_arr.astype(np.float32) / 255.0)
+                gray_float = (gray_arr.astype(np.float32) / 255.0)
+                out = np.expand_dims(gray_float, axis=2)
             else:
-                out = gray_arr.astype(orig_dtype)
+                out = np.expand_dims(gray_arr.astype(orig_dtype), axis=2)
 
             return (out,)
-        except Exception:
+        except Exception as e:
+            print(f"Error in KPUExampleNode.process: {e}")
             return (image,)
