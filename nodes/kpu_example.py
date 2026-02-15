@@ -31,11 +31,11 @@ class KPUExampleNode:
     CATEGORY = "KPU Utils"
 
     def process(self, image: Any):
-        """Convert `image` to grayscale.
+        """Convert `image` to grayscale (replicated to 3 channels for compatibility).
 
         Handles:
-        - PyTorch tensors (batch, height, width, 3) -> (batch, height, width, 1)
-        - numpy arrays (height, width, 3) -> (height, width, 1)
+        - PyTorch tensors (batch, height, width, 3) -> (batch, height, width, 3) with R=G=B
+        - numpy arrays (height, width, 3) -> (height, width, 3) with R=G=B
         - PIL Image
         """
         try:
@@ -46,25 +46,26 @@ class KPUExampleNode:
                 
                 # Convert RGB to grayscale using standard formula
                 # gray = 0.299*R + 0.587*G + 0.114*B
-                if image.shape[-1] == 3:  # RGB
-                    gray = (0.299 * image[..., 0] + 
-                            0.587 * image[..., 1] + 
-                            0.114 * image[..., 2])
-                elif image.shape[-1] == 4:  # RGBA
+                if image.shape[-1] >= 3:  # RGB or RGBA
                     gray = (0.299 * image[..., 0] + 
                             0.587 * image[..., 1] + 
                             0.114 * image[..., 2])
                 else:
                     gray = image[..., 0]  # Already single channel
                 
-                # Expand dims to maintain (batch, height, width, 1)
-                gray = gray.unsqueeze(-1)
-                print(f"[KPUExampleNode] Output tensor shape: {gray.shape}")
-                return (gray,)
+                # Replicate gray to 3 channels (R=G=B) for compatibility
+                # Stack along last dimension: (batch, height, width) -> (batch, height, width, 3)
+                gray_3ch = torch.stack([gray, gray, gray], dim=-1)
+                print(f"[KPUExampleNode] Output tensor shape: {gray_3ch.shape}")
+                return (gray_3ch,)
             
             # PIL Image -> return PIL grayscale
             if isinstance(image, Image.Image):
-                return (image.convert("L"),)
+                gray_pil = image.convert("L")
+                # Convert back to RGB to keep 3 channels
+                rgb_pil = Image.new("RGB", gray_pil.size)
+                rgb_pil.paste(gray_pil)
+                return (rgb_pil,)
 
             # numpy array
             if isinstance(image, np.ndarray):
@@ -72,7 +73,7 @@ class KPUExampleNode:
                 orig_dtype = image.dtype
                 
                 # Handle different shapes: (H,W,C) or (H,W)
-                if len(image.shape) == 3 and image.shape[-1] in (3, 4):
+                if len(image.shape) == 3 and image.shape[-1] >= 3:
                     # RGB/RGBA to grayscale
                     if np.issubdtype(orig_dtype, np.floating):
                         # Assume normalized [0, 1]
@@ -85,14 +86,17 @@ class KPUExampleNode:
                                 0.587 * image[..., 1] + 
                                 0.114 * image[..., 2]).astype(orig_dtype)
                     
-                    # Expand dims to HWC
-                    gray = np.expand_dims(gray, axis=2)
+                    # Replicate to 3 channels
+                    gray_3ch = np.stack([gray, gray, gray], axis=-1)
                 else:
-                    # Already grayscale or single channel
-                    gray = image
+                    # Already single channel, replicate to 3
+                    if len(image.shape) == 2:
+                        gray_3ch = np.stack([image, image, image], axis=-1)
+                    else:
+                        gray_3ch = image
                 
-                print(f"[KPUExampleNode] Output numpy array shape: {gray.shape}")
-                return (gray,)
+                print(f"[KPUExampleNode] Output numpy array shape: {gray_3ch.shape}")
+                return (gray_3ch,)
 
             # Fallback: try to coerce to tensor or numpy
             if HAS_TORCH:
