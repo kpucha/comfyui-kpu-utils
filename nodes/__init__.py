@@ -6,6 +6,7 @@ from .wailustrious_prompt_generator import (
     WailustriousPromptBuilder,
 )
 from .wailustrious_character_builder import WailustriousCharacterBuilder
+from .wailustrious_multi_character import WailustriousMultiCharacterGenerator
 from .kpu_scene_generator import KPUSceneGenerator
 
 __all__ = [
