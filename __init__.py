@@ -3,6 +3,7 @@
 A collection of custom nodes for ComfyUI focused on KPU utilities.
 """
 
+from nodes.kpu_scene_generator import KPUSceneGenerator
 from .nodes import KPUExampleNode, WailustriousPromptGenerator, WailustriousPromptBuilder, WailustriousCharacterBuilder, WailustriousMultiCharacterGenerator
 
 # Required by ComfyUI to recognize custom nodes
@@ -12,6 +13,7 @@ NODE_CLASS_MAPPINGS = {
     "WailustriousPromptBuilder": WailustriousPromptBuilder,
     "WailustriousCharacterBuilder": WailustriousCharacterBuilder,
     "WailustriousMultiCharacterGenerator": WailustriousMultiCharacterGenerator,
+    "KPUSceneGenerator": KPUSceneGenerator,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -20,6 +22,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "WailustriousPromptBuilder": "KPU Wailustrious Prompt Builder (Presets)",
     "WailustriousCharacterBuilder": "KPU Wailustrious Character Builder",
     "WailustriousMultiCharacterGenerator": "KPU Wailustrious Multi-Character Scene",
+    "KPUSceneGenerator": "KPU Scene Generator",
 }
 
 __all__ = ["KPUExampleNode", "WailustriousPromptGenerator", "WailustriousPromptBuilder", "WailustriousCharacterBuilder", "WailustriousMultiCharacterGenerator", "NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
