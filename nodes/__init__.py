@@ -2,6 +2,6 @@
 from .kpu_example import KPUExampleNode
 from .wailustrious_prompt_generator import WailustriousPromptGenerator, WailustriousPromptBuilder
 from .wailustrious_character_builder import WailustriousCharacterBuilder
-from .wailustrious_multi_character import WailustriousMultiCharacterGenerator
+from .kpu_scene_generator import KPUSceneGenerator
 
 __all__ = ["KPUExampleNode", "WailustriousPromptGenerator", "WailustriousPromptBuilder", "WailustriousCharacterBuilder", "WailustriousMultiCharacterGenerator"]

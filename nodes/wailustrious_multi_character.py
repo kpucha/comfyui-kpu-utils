@@ -38,6 +38,12 @@ class WailustriousMultiCharacterGenerator:
                         "isometric",
                         "profile",
                         "3/4 view",
+                        "close-up",
+                        "wide shot",
+                        "tracking shot",
+                        "drone view",
+                        "bird's eye view",
+                        "reverse angle"
                     ],
                     {"default": "eye level"},
                 ),
@@ -117,27 +123,47 @@ class WailustriousMultiCharacterGenerator:
         ]
         
         # Count girls and boys
-        girls = 0
-        boys = 0
-        char_descriptions = []
+        girls_list = []
+        boys_list = []
         
         for desc, char_type in characters:
             if desc.strip() and char_type.strip():
                 if char_type.strip().lower() == "girl":
-                    girls += 1
+                    girls_list.append(desc)
                 elif char_type.strip().lower() == "boy":
-                    boys += 1
-                char_descriptions.append(desc)
+                    boys_list.append(desc)
         
-        # Add character count at the beginning (Danbooru/Wailustrious standard)
-        if girls > 0 or boys > 0:
-            count_str = self._format_character_count(girls, boys)
-            prompt_parts.append(count_str)
+        # Build character section with explicit prefixes
+        # Format: girl1_[features], boy1_[features], boy2_[features]
+        character_parts = []
         
-        # Add character descriptions
-        for desc in char_descriptions:
+        # Count total characters for the header
+        total_girls = len(girls_list)
+        total_boys = len(boys_list)
+        
+        if total_girls > 0 or total_boys > 0:
+            count_str = self._format_character_count(total_girls, total_boys)
+            character_parts.append(count_str)
+        
+        # Add each girl with explicit prefix
+        for i, desc in enumerate(girls_list):
             if desc.strip():
-                prompt_parts.append(desc)
+                # Parse the description and add girl1_ prefix to each feature
+                features = [f.strip() for f in desc.split(",")]
+                prefixed_features = [f"girl{i+1}_{feature}" for feature in features]
+                character_parts.extend(prefixed_features)
+        
+        # Add each boy with explicit prefix
+        for i, desc in enumerate(boys_list):
+            if desc.strip():
+                # Parse the description and add boy1_ prefix to each feature
+                features = [f.strip() for f in desc.split(",")]
+                prefixed_features = [f"boy{i+1}_{feature}" for feature in features]
+                character_parts.extend(prefixed_features)
+        
+        # Add character descriptions with prefixes
+        if character_parts:
+            prompt_parts.extend(character_parts)
         
         # Camera angle
         if camera_angle.strip() and camera_angle != "eye level":
@@ -164,6 +190,7 @@ class WailustriousMultiCharacterGenerator:
         if quality_tags.strip():
             prompt_parts.append(quality_tags)
         
+        # Join with commas, preserving newlines in character descriptions
         positive_prompt = ", ".join(part.strip() for part in prompt_parts if part.strip())
         
         # Ensure negative prompt is not empty
